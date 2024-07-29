@@ -10,12 +10,9 @@ import '../model/recipes.dart';
 class HomeController extends ChangeNotifier {
   RecipesModel? recipe;
   final ApiService _apiService = ApiService();
-  List<String> data = [];
   List<Ingredient> favList = [];
-  List<Ingredient> searchList = [];
-
-
-
+  List<Ingredient> searchResults = [];
+  bool loading = false;
 
   HomeController() {
     getAllRecipes();
@@ -32,38 +29,64 @@ class HomeController extends ChangeNotifier {
       final String? all = pref.getString("all");
       recipe = RecipesModel.fromJson(jsonDecode(all ?? ""));
     }
+    await loadFavs();
     notifyListeners();
   }
 
   addToFav(int index) async {
-    if (recipe?.recipes.first.extendedIngredients?[index].isFav == true) {
-      recipe?.recipes.first.extendedIngredients?[index].isFav = false;
-    } else {
-      recipe?.recipes.first.extendedIngredients?[index].isFav = true;
+    final ingredient = recipe?.recipes.first.extendedIngredients?[index];
+    if (ingredient != null) {
+      ingredient.isFav = !ingredient.isFav;
+      if (ingredient.isFav) {
+        favList.add(ingredient);
+      } else {
+        favList.removeWhere((item) => item.id == ingredient.id);
+      }
+      await saveFavs();
+      notifyListeners();
     }
-    notifyListeners();
-
   }
 
   removeFromFav(int index) async {
-    print(favList[index].isFav);
-    favList[index].isFav = false;
+    final ingredient = favList[index];
+    ingredient.isFav = false;
     favList.removeAt(index);
-   await getAllFavs();
-
+    await saveFavs();
     notifyListeners();
   }
 
- getAllFavs() async {
-    if (recipe?.recipes.first.extendedIngredients != null) {
-      int i = 0;
-      while (i < recipe!.recipes.first.extendedIngredients!.length) {
-        if (recipe!.recipes.first.extendedIngredients![i].isFav &&
-            !favList.contains(recipe!.recipes.first.extendedIngredients![i])) {
-          favList.add(recipe!.recipes.first.extendedIngredients![i]);
+  saveFavs() async {
+    final SharedPreferences pref = await SharedPreferences.getInstance();
+    List<String> favs = favList.map((ingredient) => jsonEncode(ingredient.toJson())).toList();
+    await pref.setStringList('favList', favs);
+  }
+
+  loadFavs() async {
+    final SharedPreferences pref = await SharedPreferences.getInstance();
+    List<String>? favs = pref.getStringList('favList');
+    if (favs != null) {
+      favList = favs.map((item) => Ingredient.fromJson(jsonDecode(item))).toList();
+      for (var fav in favList) {
+        final ingredient = recipe?.recipes.first.extendedIngredients?.firstWhere(
+                (item) => item.id == fav.id);
+        if (ingredient != null) {
+          ingredient.isFav = true;
         }
-        i++;
       }
     }
+    notifyListeners();
+  }
+
+  searchRecipes(String query) {
+    loading = true;
+    if (recipe != null) {
+      searchResults = recipe!.recipes.first.extendedIngredients!.where((ingredients) {
+        return ingredients.name!.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    } else {
+      searchResults = [];
+    }
+    loading = false;
+    notifyListeners();
   }
 }

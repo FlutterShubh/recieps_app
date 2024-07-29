@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:recieps_app/controllers/home_controller.dart';
 import 'package:recieps_app/views/screens/favorites.dart';
+import 'package:recieps_app/views/widgets/list_item.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,40 +50,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: TextField(
                         controller: controller,
                         decoration: InputDecoration(
-                          hintText: "Search"
+                            hintText: "Search", prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder()
                         ),
+                        onChanged: (value) {
+                          homeController.searchRecipes(value);
+                        },
                       ),
                     ),
-                    IconButton(onPressed:() {
-                    }, icon: Icon(Icons.search,size: 30,))
                   ],
                 ),
               ),
+              SizedBox(
+                height: 10,
+              ),
               Expanded(
-                child: Consumer<HomeController>(
-                  builder: (context, value, child) => ListView.builder(
-                      itemBuilder: (context, index) {
-                        final HomeController homeController =
-                            context.watch<HomeController>();
-                        return ListTile(
-                          title: Text(homeController.recipe?.recipes.first
-                                  .extendedIngredients?[index].name ??
-                              ""),
-                          trailing: PopupMenuButton(
-                            itemBuilder: (context) {
-                              return [
-                                PopupMenuItem(
-                                    onTap: () async {
-                                      await homeController.addToFav(index);
-                                    },
-                                    child: Text("Add From Favorite"))
-                              ];
-                            },
-                          ),
-                        );
-                      },
-                      itemCount: 5),
-                ),
+                child:
+                    Consumer<HomeController>(builder: (context, value, child) {
+                  final recipes = homeController.searchResults.isNotEmpty
+                      ? homeController.searchResults
+                      : homeController
+                              .recipe?.recipes.first.extendedIngredients ??
+                          [];
+                  return homeController.loading
+                      ? Center(
+                          child: CircularProgressIndicator(),
+                        )
+                      : ListView.builder(
+                          itemBuilder: (context, index) {
+                            final HomeController homeController =
+                                context.watch<HomeController>();
+                            return ListItem(
+                              index: index,
+                              homeController: homeController,
+                              recipe: recipes[index],
+                            );
+                          },
+                          itemCount: recipes.length);
+                }),
               ),
             ],
           ),

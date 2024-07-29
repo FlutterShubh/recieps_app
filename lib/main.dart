@@ -4,6 +4,7 @@ import 'package:recieps_app/controllers/home_controller.dart';
 import 'package:recieps_app/views/screens/home_screen.dart';
 
 void main() {
+
   runApp(const MyApp());
 }
 

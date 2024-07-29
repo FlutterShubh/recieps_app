@@ -38,6 +38,7 @@ dependencies:
   dio: ^5.5.0+1
   shared_preferences:
   provider:
+  hive_flutter:
 
 
 dev_dependencies:
